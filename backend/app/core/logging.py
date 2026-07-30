@@ -44,6 +44,12 @@ def configure_logging(log_level: str) -> None:
     root_logger.addHandler(handler)
     root_logger.setLevel(numeric_level)
 
+    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        uvicorn_logger = logging.getLogger(logger_name)
+        uvicorn_logger.handlers.clear()
+        uvicorn_logger.propagate = True
+        uvicorn_logger.setLevel(numeric_level)
+
 
 def set_request_id(request_id: str) -> contextvars.Token[str]:
     return request_id_context.set(request_id)
