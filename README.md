@@ -1516,3 +1516,582 @@ Planned capabilities include:
 These features can be introduced without changing the existing layered architecture because responsibilities are already well separated.
 
 ---
+
+
+# 🚀 Getting Started
+
+## Prerequisites
+
+Before running HoneyShield locally, ensure the following software is installed.
+
+| Software | Version |
+|----------|----------|
+| Python | 3.12+ |
+| PostgreSQL | 15+ |
+| Docker | Latest |
+| Docker Compose | Latest |
+| Git | Latest |
+
+Recommended IDE:
+
+- Visual Studio Code
+- PyCharm Professional
+
+---
+
+# 📥 Clone the Repository
+
+```bash
+git clone https://github.com/<your-username>/HoneyShield.git
+
+cd HoneyShield
+```
+
+---
+
+# 📦 Create Virtual Environment
+
+Linux / macOS
+
+```bash
+python3 -m venv .venv
+
+source .venv/bin/activate
+```
+
+Windows
+
+```powershell
+python -m venv .venv
+
+.venv\Scripts\activate
+```
+
+---
+
+# 📚 Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+# ⚙️ Configure Environment Variables
+
+Create a `.env` file.
+
+Example:
+
+```env
+APP_NAME=HoneyShield
+
+APP_ENV=development
+
+APP_DEBUG=true
+
+DATABASE_URL=postgresql+psycopg://postgres:password@localhost:5432/honeyshield
+
+LOG_LEVEL=INFO
+```
+
+---
+
+# 🐳 Run with Docker
+
+Build containers
+
+```bash
+docker compose build
+```
+
+Start services
+
+```bash
+docker compose up
+```
+
+Run in detached mode
+
+```bash
+docker compose up -d
+```
+
+Stop containers
+
+```bash
+docker compose down
+```
+
+---
+
+# 🗄️ Database Migrations
+
+Generate migration
+
+```bash
+alembic revision --autogenerate -m "description"
+```
+
+Apply migrations
+
+```bash
+alembic upgrade head
+```
+
+Rollback one migration
+
+```bash
+alembic downgrade -1
+```
+
+Check migration status
+
+```bash
+alembic current
+```
+
+View migration history
+
+```bash
+alembic history
+```
+
+---
+
+# ▶️ Running the Backend
+
+Development mode
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Production mode
+
+```bash
+uvicorn app.main:app
+```
+
+---
+
+# ❤️ Health Endpoints
+
+Docker health check
+
+```
+GET /health
+```
+
+Versioned API health endpoint
+
+```
+GET /api/v1/health
+```
+
+Example response
+
+```json
+{
+    "status": "healthy"
+}
+```
+
+---
+
+# 📖 API Documentation
+
+FastAPI automatically generates interactive API documentation.
+
+Swagger UI
+
+```
+/docs
+```
+
+ReDoc
+
+```
+/redoc
+```
+
+OpenAPI JSON
+
+```
+/openapi.json
+```
+
+---
+
+# 🧪 Testing
+
+Run all tests
+
+```bash
+pytest
+```
+
+Run a specific test
+
+```bash
+pytest tests/test_tenant.py
+```
+
+Measure coverage
+
+```bash
+pytest --cov=app
+```
+
+---
+
+# 🔍 Code Quality
+
+Format code
+
+```bash
+black .
+```
+
+Sort imports
+
+```bash
+isort .
+```
+
+Lint
+
+```bash
+ruff check .
+```
+
+Type checking
+
+```bash
+mypy app
+```
+
+---
+
+# 🌿 Git Workflow
+
+Create a feature branch
+
+```bash
+git checkout -b feature/new-feature
+```
+
+Stage changes
+
+```bash
+git add .
+```
+
+Commit
+
+```bash
+git commit -m "feat: implement new feature"
+```
+
+Push
+
+```bash
+git push origin feature/new-feature
+```
+
+---
+
+# 📌 Versioning
+
+HoneyShield follows Semantic Versioning.
+
+```
+v0.1.0
+
+↓
+
+v0.2.0
+
+↓
+
+...
+
+↓
+
+v1.0.0
+```
+
+Example
+
+```
+Major.Minor.Patch
+```
+
+- Major → Breaking changes
+- Minor → New functionality
+- Patch → Bug fixes
+
+---
+
+# 🏗️ Development Roadmap
+
+## ✅ Milestone 1
+
+Project Planning
+
+- Architecture
+- Folder structure
+- Technology selection
+- Development roadmap
+
+---
+
+## ✅ Milestone 2
+
+Backend Foundation
+
+- FastAPI
+- Logging
+- Middleware
+- Configuration
+- Database Session
+- Health Endpoints
+
+---
+
+## ✅ Milestone 3
+
+Database Infrastructure
+
+- SQLAlchemy Base
+- Alembic
+- ApplicationConfig
+- AuditLog
+
+---
+
+## ✅ Milestone 4
+
+Domain Models
+
+- Tenant
+- Project
+- HoneyToken
+- DetectionEvent
+- Relationships
+- Constraints
+
+---
+
+## ✅ Milestone 5
+
+Repository Layer
+
+- Generic Base Repository
+- Domain Repositories
+- SQLAlchemy 2.x
+- Repository Pattern
+
+---
+
+## ✅ Milestone 6
+
+Service Layer
+
+- Business Logic
+- Transactions
+- Validation
+- Dependency Injection
+- Domain Exceptions
+
+---
+
+## 🚧 Milestone 7
+
+REST API Layer
+
+Planned:
+
+- Versioned REST APIs
+- Request Validation
+- Response Models
+- Dependency Providers
+- Exception Mapping
+- OpenAPI Documentation
+
+---
+
+## 🔮 Future Milestones
+
+Authentication
+
+- JWT
+- OAuth2
+- API Keys
+
+---
+
+Threat Intelligence
+
+- IP Reputation
+- GeoIP
+- ASN Lookup
+
+---
+
+AI Detection Engine
+
+- Behavioral Analysis
+- Bot Classification
+- Threat Scoring
+- Risk Prediction
+
+---
+
+Dashboard
+
+- Analytics
+- Graphs
+- Live Detection Feed
+
+---
+
+Alerting
+
+- Slack
+- Discord
+- Email
+- Webhooks
+
+---
+
+Caching
+
+- Redis
+- Event Queue
+
+---
+
+Observability
+
+- Prometheus
+- Grafana
+- OpenTelemetry
+
+---
+
+Deployment
+
+- Kubernetes
+- Helm
+- Terraform
+- AWS
+- Azure
+- GCP
+
+---
+
+# 📊 Current Progress
+
+| Milestone | Status |
+|-----------|--------|
+| Planning | ✅ |
+| Backend Foundation | ✅ |
+| Database Infrastructure | ✅ |
+| Domain Models | ✅ |
+| Repository Layer | ✅ |
+| Service Layer | ✅ |
+| API Layer | 🚧 |
+| Authentication | ⏳ |
+| AI Engine | ⏳ |
+| Dashboard | ⏳ |
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome.
+
+Recommended workflow:
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Follow existing coding standards.
+4. Ensure tests pass.
+5. Submit a Pull Request.
+
+---
+
+# 📜 License
+
+This project is released under the MIT License.
+
+See the `LICENSE` file for details.
+
+---
+
+# 👨‍💻 Author
+
+**Karthik Balaji**
+
+Artificial Intelligence & Data Science Engineer
+
+Passionate about:
+
+- Cybersecurity
+- Artificial Intelligence
+- Machine Learning
+- Backend Engineering
+- Secure Systems
+- Cloud Computing
+
+GitHub
+
+```
+https://github.com/karthikbalaji1111-wq
+```
+
+---
+
+# 🙏 Acknowledgements
+
+Special thanks to the open-source community and the maintainers of:
+
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Alembic
+- Pydantic
+- Uvicorn
+- Docker
+- Python
+
+Their contributions make modern backend engineering possible.
+
+---
+
+# ⭐ Support the Project
+
+If you found HoneyShield useful:
+
+⭐ Star the repository
+
+🍴 Fork the project
+
+🛠️ Contribute improvements
+
+🐛 Report issues
+
+💡 Suggest new features
+
+Every contribution helps make HoneyShield a more powerful deception security platform.
+
+---
+
+# 🎯 Vision
+
+HoneyShield aims to evolve into a comprehensive, AI-driven deception security platform capable of detecting, analyzing, and responding to modern reconnaissance and automated attack techniques in real time.
+
+By combining secure backend engineering, scalable architecture, and future AI-powered threat intelligence, HoneyShield aspires to become a production-ready cybersecurity solution suitable for enterprise environments.
+
+> **"Detect the attacker before the attacker reaches your assets."**
