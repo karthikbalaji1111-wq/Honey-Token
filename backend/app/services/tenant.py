@@ -1,27 +1,57 @@
+"""Tenant service operations."""
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import DuplicateTenantError, TenantNotFoundError, ValidationError
+from app.core.exceptions import (
+    DuplicateTenantError,
+    TenantNotFoundError,
+)
 from app.models.tenant import Tenant
 from app.repositories.tenant import TenantRepository
 from app.services.base import BaseService
 
 
 class TenantService(BaseService):
+    """Coordinate tenant lifecycle operations."""
+
     def __init__(self, session: Session, tenant_repo: TenantRepository) -> None:
+        """Initialize the service with tenant persistence dependencies.
+
+        Args:
+            session: The transaction session for tenant operations.
+            tenant_repo: Repository used to persist and retrieve tenants.
+
+        Returns:
+            None.
+        """
         super().__init__(session)
         self.tenant_repo = tenant_repo
 
     def create_tenant(self, name: str, slug: str) -> Tenant:
-        if not name or not slug:
-            raise ValidationError("Name and slug are required")
+        """Create a tenant with a unique slug.
 
-        if self.tenant_repo.slug_exists(slug):
-            raise DuplicateTenantError(f"Tenant with slug '{slug}' already exists")
+        Args:
+            name: Human-readable tenant name.
+            slug: Unique tenant identifier.
 
-        tenant = self.tenant_repo.create(name=name, slug=slug)
+        Returns:
+            The persisted tenant.
+
+        Raises:
+            ValidationError: If a required value is blank.
+            DuplicateTenantError: If the slug is already in use.
+        """
+        self._validate_required_fields(("Name", name), ("Slug", slug))
+
         try:
+            if self.tenant_repo.slug_exists(slug):
+                raise DuplicateTenantError(
+                    f"Tenant with slug '{slug}' already exists"
+                )
+
+            tenant = self.tenant_repo.create(name=name, slug=slug)
             self.session.commit()
             return tenant
         except Exception:
@@ -29,23 +59,53 @@ class TenantService(BaseService):
             raise
 
     def get_tenant(self, slug: str) -> Tenant:
+        """Retrieve a tenant by its slug.
+
+        Args:
+            slug: Unique tenant identifier.
+
+        Returns:
+            The matching tenant.
+
+        Raises:
+            ValidationError: If the slug is blank.
+            TenantNotFoundError: If no matching tenant exists.
+        """
+        self._validate_required_fields(("Slug", slug))
         tenant = self.tenant_repo.get_by_slug(slug)
         if not tenant:
             raise TenantNotFoundError(f"Tenant '{slug}' not found")
         return tenant
 
     def list_tenants(self, active_only: bool = True) -> list[Tenant]:
+        """List tenants, optionally limited to active records.
+
+        Args:
+            active_only: Whether to exclude inactive tenants.
+
+        Returns:
+            Tenant records matching the requested activity filter.
+        """
         if active_only:
             return self.tenant_repo.list_active()
         return self.tenant_repo.list()
 
     def delete_tenant(self, slug: str) -> None:
-        tenant = self.tenant_repo.get_by_slug(slug)
-        if not tenant:
-            raise TenantNotFoundError(f"Tenant '{slug}' not found")
-        
-        self.tenant_repo.delete(tenant.id)
+        """Delete a tenant and its cascade-managed dependents.
+
+        Args:
+            slug: Unique tenant identifier.
+
+        Returns:
+            None.
+
+        Raises:
+            ValidationError: If the slug is blank.
+            TenantNotFoundError: If no matching tenant exists.
+        """
         try:
+            tenant = self.get_tenant(slug)
+            self.tenant_repo.delete(tenant.id)
             self.session.commit()
         except Exception:
             self.session.rollback()

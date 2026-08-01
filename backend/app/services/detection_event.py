@@ -1,4 +1,7 @@
+"""Detection-event service operations."""
+
 from __future__ import annotations
+
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -12,61 +15,160 @@ from app.services.base import BaseService
 
 
 class DetectionEventService(BaseService):
+    """Coordinate immutable detection-event recording and retrieval."""
+
     def __init__(
-        self, session: Session, event_repo: DetectionEventRepository, token_repo: HoneyTokenRepository
+        self,
+        session: Session,
+        event_repo: DetectionEventRepository,
+        token_repo: HoneyTokenRepository,
     ) -> None:
+        """Initialize the service with event and token repositories.
+
+        Args:
+            session: The transaction session for event operations.
+            event_repo: Repository used to persist and retrieve events.
+            token_repo: Repository used to resolve honey tokens.
+
+        Returns:
+            None.
+        """
         super().__init__(session)
         self.event_repo = event_repo
         self.token_repo = token_repo
 
     def _resolve_token_id(self, token_value: str | None) -> int | None:
-        if not token_value:
+        """Resolve an optional token value to its database identifier.
+
+        Args:
+            token_value: Optional globally unique honey token value.
+
+        Returns:
+            The token identifier, or None when no token filter is supplied.
+
+        Raises:
+            ValidationError: If a supplied token value is blank.
+            HoneyTokenNotFoundError: If no matching token exists.
+        """
+        if token_value is None:
             return None
+
+        self._validate_required_fields(("Token value", token_value))
         token = self.token_repo.get_by_token(token_value)
         if not token:
             raise HoneyTokenNotFoundError(f"Token '{token_value}' not found")
         return token.id
 
     def record_event(
-        self, token_value: str, ip_address: str, request_path: str, http_method: str, 
-        severity: EventSeverity, user_agent: str | None = None, headers: dict[str, Any] | None = None
+        self,
+        token_value: str,
+        ip_address: str,
+        request_path: str,
+        http_method: str,
+        severity: EventSeverity,
+        user_agent: str | None = None,
+        headers: dict[str, Any] | None = None,
     ) -> DetectionEvent:
-        if not ip_address or not request_path or not http_method:
-            raise ValidationError("IP address, request path, and HTTP method are required")
+        """Record an immutable event for an existing honey token.
 
-        token_id = self._resolve_token_id(token_value)
-        if token_id is None:
-            raise ValidationError("Token value is required for recording events")
+        Args:
+            token_value: Globally unique honey token value that was triggered.
+            ip_address: Source IP address of the request.
+            request_path: Request path observed during the event.
+            http_method: HTTP method observed during the event.
+            severity: Classified severity of the event.
+            user_agent: Optional request user-agent value.
+            headers: Optional captured request headers.
 
-        event = self.event_repo.create(
-            honey_token_id=token_id,
-            ip_address=ip_address,
-            request_path=request_path,
-            http_method=http_method,
-            severity=severity,
-            user_agent=user_agent,
-            headers=headers,
+        Returns:
+            The persisted detection event.
+
+        Raises:
+            ValidationError: If a required value is blank.
+            HoneyTokenNotFoundError: If the referenced token does not exist.
+        """
+        self._validate_required_fields(
+            ("Token value", token_value),
+            ("IP address", ip_address),
+            ("Request path", request_path),
+            ("HTTP method", http_method),
         )
+
         try:
+            token_id = self._resolve_token_id(token_value)
+            if token_id is None:
+                raise ValidationError("Token value is required for recording events")
+
+            event = self.event_repo.create(
+                honey_token_id=token_id,
+                ip_address=ip_address,
+                request_path=request_path,
+                http_method=http_method,
+                severity=severity,
+                user_agent=user_agent,
+                headers=headers,
+            )
             self.session.commit()
             return event
         except Exception:
             self.session.rollback()
             raise
 
-    def list_recent_events(self, token_value: str | None = None, limit: int = 100) -> list[DetectionEvent]:
+    def list_recent_events(
+        self,
+        token_value: str | None = None,
+        limit: int = 100,
+    ) -> list[DetectionEvent]:
+        """List recent events globally or for a specific honey token.
+
+        Args:
+            token_value: Optional honey token value used to scope results.
+            limit: Maximum number of recent events to return.
+
+        Returns:
+            Detection events ordered from newest to oldest.
+
+        Raises:
+            ValidationError: If the limit is invalid or token value is blank.
+            HoneyTokenNotFoundError: If a supplied token does not exist.
+        """
+        if limit < 1:
+            raise ValidationError("Limit must be at least 1")
+
         honey_token_id = self._resolve_token_id(token_value)
-        return self.event_repo.list_recent(honey_token_id=honey_token_id, limit=limit)
+        return self.event_repo.list_recent(
+            honey_token_id=honey_token_id,
+            limit=limit,
+        )
 
     def count_today(self, token_value: str | None = None) -> int:
+        """Count events recorded since the current UTC day began.
+
+        Args:
+            token_value: Optional honey token value used to scope the count.
+
+        Returns:
+            Number of matching detection events recorded today.
+
+        Raises:
+            ValidationError: If a supplied token value is blank.
+            HoneyTokenNotFoundError: If a supplied token does not exist.
+        """
         honey_token_id = self._resolve_token_id(token_value)
         return self.event_repo.count_today(honey_token_id=honey_token_id)
 
     def get_statistics(self) -> dict[str, int]:
-        """Returns high-level statistics of detection events."""
+        """Return global detection-event totals.
+
+        Args:
+            None.
+
+        Returns:
+            A mapping containing total and current-day event counts.
+        """
         total_events = self.event_repo.count()
         today_events = self.event_repo.count_today()
-        
+
         return {
             "total_events": total_events,
             "today_events": today_events,
