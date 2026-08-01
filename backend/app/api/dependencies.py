@@ -1,0 +1,50 @@
+"""FastAPI dependency providers for application services."""
+
+from typing import Annotated
+
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.repositories.detection_event import DetectionEventRepository
+from app.repositories.honey_token import HoneyTokenRepository
+from app.repositories.project import ProjectRepository
+from app.repositories.tenant import TenantRepository
+from app.services.detection_event import DetectionEventService
+from app.services.honey_token import HoneyTokenService
+from app.services.project import ProjectService
+from app.services.tenant import TenantService
+
+SessionDependency = Annotated[Session, Depends(get_db)]
+
+
+def get_tenant_service(session: SessionDependency) -> TenantService:
+    """Provide a tenant service using the request-scoped database session."""
+    return TenantService(session=session, tenant_repo=TenantRepository(session))
+
+
+def get_project_service(session: SessionDependency) -> ProjectService:
+    """Provide a project service using the request-scoped database session."""
+    return ProjectService(
+        session=session,
+        project_repo=ProjectRepository(session),
+        tenant_repo=TenantRepository(session),
+    )
+
+
+def get_honey_token_service(session: SessionDependency) -> HoneyTokenService:
+    """Provide a honey-token service using the request-scoped session."""
+    return HoneyTokenService(
+        session=session,
+        token_repo=HoneyTokenRepository(session),
+        project_repo=ProjectRepository(session),
+    )
+
+
+def get_detection_event_service(session: SessionDependency) -> DetectionEventService:
+    """Provide a detection-event service using the request-scoped session."""
+    return DetectionEventService(
+        session=session,
+        event_repo=DetectionEventRepository(session),
+        token_repo=HoneyTokenRepository(session),
+    )
