@@ -34,8 +34,9 @@ class BaseRepository(Generic[ModelType]):
         return self.session.scalar(stmt) or 0
 
     def delete(self, id: int) -> None:
-        stmt = delete(self.model_class).where(getattr(self.model_class, "id") == id)
-        self.session.execute(stmt)
+        obj = self.get_by_id(id)
+        if obj:
+            self.session.delete(obj)
 
     def flush(self) -> None:
         self.session.flush()

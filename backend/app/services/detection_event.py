@@ -111,7 +111,10 @@ class DetectionEventService(BaseService):
             self.session.commit()
             return event
         except Exception:
-            self.session.rollback()
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
             raise
 
     def list_recent_events(

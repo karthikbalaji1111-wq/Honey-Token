@@ -10,12 +10,16 @@ from app.core.exceptions import (
     DuplicateHoneyTokenError,
     HoneyTokenNotFoundError,
     ProjectNotFoundError,
+    ValidationError,
 )
 from app.models.enums import HoneyTokenType
 from app.models.honey_token import HoneyToken
 from app.repositories.honey_token import HoneyTokenRepository
 from app.repositories.project import ProjectRepository
 from app.services.base import BaseService
+from app.services.generation.registry import GENERATOR_REGISTRY
+
+from sqlalchemy.exc import IntegrityError
 
 
 class HoneyTokenService(BaseService):
@@ -92,7 +96,88 @@ class HoneyTokenService(BaseService):
             self.session.commit()
             return token
         except Exception:
-            self.session.rollback()
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
+            raise
+
+    def generate_token(
+        self,
+        project_domain: str,
+        token_type: HoneyTokenType,
+        params: dict[str, Any] | None = None,
+    ) -> HoneyToken:
+        """Generate and persist a realistic honey token dynamically.
+
+        Args:
+            project_domain: Domain of the owning project.
+            token_type: Category of the honey token.
+            params: Optional generation-specific parameters.
+
+        Returns:
+            The persisted honey token.
+
+        Raises:
+            ValidationError: If project_domain is empty, token_type is invalid, or output is invalid.
+            ProjectNotFoundError: If the project doesn't exist.
+            DuplicateHoneyTokenError: If unique generation fails after 3 attempts.
+        """
+        self._validate_required_fields(("Project domain", project_domain))
+        
+        generator = GENERATOR_REGISTRY.get(token_type)
+        if not generator:
+            raise ValidationError(f"Unsupported honey token type: '{token_type}'")
+
+        try:
+            project = self.project_repo.get_by_domain(project_domain)
+            if not project:
+                raise ProjectNotFoundError(f"Project '{project_domain}' not found")
+
+            # Try up to 3 times to generate a globally unique token
+            for _ in range(3):
+                generated = generator.generate(project_domain, params or {})
+                
+                # Output validation
+                if not generated.token_value:
+                    raise ValidationError("Generator produced an empty token value")
+
+
+                
+                try:
+                    token = self.token_repo.create(
+                        project_id=project.id,
+                        token_type=token_type,
+                        token_value=generated.token_value,
+                        label=generated.label,
+                        token_metadata=generated.metadata,
+                    )
+                    self.session.commit()
+                    return token
+                except IntegrityError:
+                    try:
+                        self.session.rollback()
+                    except Exception:
+                        pass
+                    continue
+                except Exception:
+                    try:
+                        self.session.rollback()
+                    except Exception:
+                        pass
+                    raise
+                    
+            raise DuplicateHoneyTokenError(
+                f"Failed to generate unique token for '{project_domain}' after 3 attempts"
+            )
+            
+        except (ProjectNotFoundError, ValidationError, DuplicateHoneyTokenError):
+            raise
+        except Exception:
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
             raise
 
     def revoke_token(self, token_value: str) -> None:
@@ -118,7 +203,10 @@ class HoneyTokenService(BaseService):
             token.is_active = False
             self.session.commit()
         except Exception:
-            self.session.rollback()
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
             raise
 
     def rotate_token(self, old_token_value: str, new_token_value: str) -> HoneyToken:
@@ -165,7 +253,10 @@ class HoneyTokenService(BaseService):
             self.session.commit()
             return new_token
         except Exception:
-            self.session.rollback()
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
             raise
 
     def list_tokens(

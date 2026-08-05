@@ -79,7 +79,10 @@ class ProjectService(BaseService):
             self.session.commit()
             return project
         except Exception:
-            self.session.rollback()
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
             raise
 
     def get_project(self, domain: str) -> Project:
@@ -152,5 +155,8 @@ class ProjectService(BaseService):
             self.project_repo.delete(project.id)
             self.session.commit()
         except Exception:
-            self.session.rollback()
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
             raise
