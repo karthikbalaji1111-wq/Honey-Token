@@ -34,6 +34,16 @@ class HoneyTokenCreate(SchemaBase):
     )
 
 
+class HoneyTokenGenerate(SchemaBase):
+    """Request payload used to dynamically generate a honey token."""
+
+    token_type: HoneyTokenType = Field(description="Honey-token category to generate.")
+    generator_params: dict[str, Any] | None = Field(
+        default=None,
+        description="Optional generation-specific parameters (e.g., provider_style).",
+    )
+
+
 class HoneyTokenRevoke(SchemaBase):
     """Request payload used to revoke a honey token."""
 
