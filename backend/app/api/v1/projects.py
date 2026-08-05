@@ -4,10 +4,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, status
 
-from app.api.dependencies import get_project_service
+from app.api.dependencies import get_project_service, get_honey_token_service
 from app.schemas.error import ErrorResponse
 from app.schemas.project import ProjectCreate, ProjectResponse
+from app.schemas.honey_token import HoneyTokenGenerate, HoneyTokenResponse
 from app.services.project import ProjectService
+from app.services.honey_token import HoneyTokenService
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -160,3 +162,48 @@ def delete_project(
 ) -> None:
     """Delete a project."""
     service.delete_project(domain=domain)
+
+
+@router.post(
+    "/{domain}/honey-tokens/generate",
+    response_model=HoneyTokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate a honey token",
+    description="Algorithmically generates and persists a realistic honey token.",
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ErrorResponse,
+            "description": "Owning project does not exist.",
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": ErrorResponse,
+            "description": "Failed to generate a unique token after retries.",
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "model": ErrorResponse,
+            "description": "Request, domain, or parameter validation failed.",
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": ErrorResponse,
+            "description": "Unexpected server error.",
+        },
+    },
+)
+def generate_honey_token(
+    domain: Annotated[
+        str,
+        Path(
+            min_length=1,
+            max_length=253,
+            description="Project domain identifier.",
+        ),
+    ],
+    payload: HoneyTokenGenerate,
+    service: Annotated[HoneyTokenService, Depends(get_honey_token_service)],
+) -> HoneyTokenResponse:
+    """Generate and serialize a honey token."""
+    return service.generate_token(
+        project_domain=domain,
+        token_type=payload.token_type,
+        params=payload.generator_params,
+    )
