@@ -1,0 +1,1 @@
+"""Public ingestion endpoints package."""
