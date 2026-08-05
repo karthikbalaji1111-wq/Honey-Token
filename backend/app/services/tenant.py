@@ -55,7 +55,10 @@ class TenantService(BaseService):
             self.session.commit()
             return tenant
         except Exception:
-            self.session.rollback()
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
             raise
 
     def get_tenant(self, slug: str) -> Tenant:
@@ -108,5 +111,8 @@ class TenantService(BaseService):
             self.tenant_repo.delete(tenant.id)
             self.session.commit()
         except Exception:
-            self.session.rollback()
+            try:
+                self.session.rollback()
+            except Exception:
+                pass
             raise
